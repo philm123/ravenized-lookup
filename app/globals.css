@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #08070C;
+  --color-bg-surface: #111016;
+  --color-bg-elevated: #1A1820;
+  --color-text-primary: #FAFAFD;
+  --color-text-secondary: #8A8694;
+  --color-accent-blue: #1E63FF;
+  --color-accent-violet: #7B3CFF;
+  --color-accent-magenta: #D6308F;
+  --color-accent-green: #22D070;
+
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-accent-blue);
+  color: #fff;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.gradient-hero {
+  background: linear-gradient(135deg, #1E63FF, #7B3CFF, #D6308F);
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+}
+
+.snap-start {
+  scroll-snap-align: start;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
