@@ -8,7 +8,9 @@
 | 2026-05-12 | Leads stored in localStorage, not a database | No auth system in v1 | Auth/sign-up flow is implemented |
 | 2026-05-12 | No sign-up/auth flow | BDR persona doesn't need it for v1 utility | Multi-user or Owner persona is built |
 | 2026-05-12 | SQLite for data storage | 30K rows is perfect for SQLite, no external DB needed, deploys with the app | Dataset exceeds 500K rows or needs real-time updates |
-| 2026-05-12 | Pattern A only (no B/C) | BDR field use case ships first | Marketing/Owner personas are added |
+| 2026-05-30 | Three patterns built: A (BDR), B (Marketing), C (Owner) | Each persona gets a tailored UI: A=speed/utility, B=consultative/light, C=editorial/brand-forward. All share the same API + data layer. Routes: `/`, `/b`, `/c` | Persona mapping validated with Raven stakeholders |
+| 2026-05-30 | Standalone demo repo for Raven (`~/momentum-demo`) | Separate from `ravenized-lookup` so the demo can be self-contained, shareable, and doesn't pollute the working app. Copies data layer + all 3 patterns. Landing page maps personas to patterns with descriptors. | Demo feedback incorporated or demo archived |
+| 2026-05-12 | ~~Pattern A only (no B/C)~~ | ~~BDR field use case ships first~~ | Replaced 2026-05-30 — all 3 patterns now built |
 | 2026-05-12 | Web-first, not native | Faster to ship, works on any phone browser | Field testing reveals PWA limitations that require native |
 
 ## What is NOT in v1
@@ -18,7 +20,7 @@
 - CRM integration
 - Map view
 - Address-level marking
-- Marketing/Owner persona views
+- ~~Marketing/Owner persona views~~ (done 2026-05-30 — Patterns B + C)
 - Ad avenue recommendations
 - ~~Real storm data integration~~ (done 2026-05-30)
 - PWA/offline support
