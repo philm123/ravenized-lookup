@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { lookupZip } from '@/lib/db';
 import { calculateFitScore } from '@/lib/fit-score';
-import { getMockStormData } from '@/lib/storm-mock';
+import { getStormData, getCityForZip } from '@/lib/storm-api';
 import { generateSummary } from '@/lib/summary';
 
 // US state abbreviation lookup
@@ -35,7 +35,10 @@ export async function GET(
     return NextResponse.json({ error: 'Zip code not found' }, { status: 404 });
   }
 
-  const storm = getMockStormData(zip);
+  const [storm, city] = await Promise.all([
+    getStormData(zip),
+    getCityForZip(zip),
+  ]);
   const fit = calculateFitScore(
     row.criteria_1, row.criteria_2, row.criteria_3,
     row.criteria_4, row.criteria_5, storm.count
@@ -53,6 +56,7 @@ export async function GET(
 
   return NextResponse.json({
     zip: row.zip,
+    city: city || null,
     state: row.state,
     stateAbbrev,
     medianIncome: row.median_income,

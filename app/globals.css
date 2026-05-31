@@ -69,3 +69,11 @@ html, body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.theme-light {
+  --color-bg-primary: #FBFAFE;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-elevated: #F3F1F8;
+  --color-text-primary: #111016;
+  --color-text-secondary: #64607A;
+}
