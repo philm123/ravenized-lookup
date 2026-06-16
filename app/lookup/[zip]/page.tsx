@@ -81,13 +81,12 @@ function CheckIcon({ size = 18 }: { size?: number }) {
 }
 
 const RECENT_KEY = 'momentum_recent_lookups';
-const LEADS_KEY = 'momentum_saved_leads';
 
 function addRecent(data: ZipProfile) {
   try {
     const raw = localStorage.getItem(RECENT_KEY);
     const arr = raw ? JSON.parse(raw) : [];
-    const filtered = arr.filter((r: any) => r.zip !== data.zip);
+    const filtered = arr.filter((r: { zip: string }) => r.zip !== data.zip);
     filtered.unshift({
       zip: data.zip,
       state: data.stateAbbrev || data.state,
@@ -98,32 +97,32 @@ function addRecent(data: ZipProfile) {
   } catch {}
 }
 
-function isLeadSaved(zip: string): boolean {
+async function isLeadSaved(zip: string): Promise<boolean> {
   try {
-    const raw = localStorage.getItem(LEADS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return arr.some((l: any) => l.zip === zip);
+    const res = await fetch(`/api/leads?zip=${encodeURIComponent(zip)}`);
+    if (!res.ok) return false;
+    const json = await res.json();
+    return json.leads.length > 0;
   } catch { return false; }
 }
 
-function saveLead(data: ZipProfile) {
-  try {
-    const raw = localStorage.getItem(LEADS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    if (arr.some((l: any) => l.zip === data.zip)) return;
-    arr.unshift({
+async function saveLead(data: ZipProfile): Promise<void> {
+  const stormSummary = data.storm.count > 0
+    ? `${data.storm.count} ${data.storm.primaryType || 'storm'} · ${data.storm.lastDate ? new Date(data.storm.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
+    : null;
+
+  await fetch('/api/leads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       zip: data.zip,
-      state: data.stateAbbrev || data.state,
+      stateAbbrev: data.stateAbbrev || data.state,
       fitScore: data.fitScore,
       fitGrade: data.fitGrade,
       stormFlag: data.storm.count >= 3,
-      stormSummary: data.storm.count > 0
-        ? `${data.storm.count} ${data.storm.primaryType || 'storm'} · ${data.storm.lastDate ? new Date(data.storm.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
-        : null,
-      savedAt: new Date().toISOString(),
-    });
-    localStorage.setItem(LEADS_KEY, JSON.stringify(arr));
-  } catch {}
+      stormSummary,
+    }),
+  });
 }
 
 export default function LookupPage() {
@@ -144,18 +143,18 @@ export default function LookupPage() {
         if (!res.ok) throw new Error(res.status === 404 ? 'Zip code not found' : 'Lookup failed');
         return res.json();
       })
-      .then((d: ZipProfile) => {
+      .then(async (d: ZipProfile) => {
         setData(d);
         addRecent(d);
-        setSaved(isLeadSaved(d.zip));
+        setSaved(await isLeadSaved(d.zip));
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [zip]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!data) return;
-    saveLead(data);
+    await saveLead(data);
     setSaved(true);
   };
 

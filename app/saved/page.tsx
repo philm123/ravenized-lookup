@@ -28,13 +28,12 @@ function PlusIcon({ size = 16 }: { size?: number }) {
   );
 }
 
-const LEADS_KEY = 'momentum_saved_leads';
-
-function getLeads(): SavedLead[] {
-  if (typeof window === 'undefined') return [];
+async function fetchLeads(): Promise<SavedLead[]> {
   try {
-    const raw = localStorage.getItem(LEADS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const res = await fetch('/api/leads');
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.leads as SavedLead[];
   } catch { return []; }
 }
 
@@ -45,7 +44,7 @@ export default function SavedPage() {
   const [exported, setExported] = useState(false);
 
   useEffect(() => {
-    setLeads(getLeads());
+    fetchLeads().then(setLeads);
   }, []);
 
   const filtered = filter === 'storm' ? leads.filter((l) => l.stormFlag) : leads;

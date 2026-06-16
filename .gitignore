@@ -3,7 +3,10 @@ node_modules
 out
 out.zip
 data/momentum.db
+data/momentum.db-shm
+data/momentum.db-wal
 .DS_Store
+.claude/
 *.tsbuildinfo
 next-env.d.ts
 .vercel

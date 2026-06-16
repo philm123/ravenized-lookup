@@ -82,7 +82,6 @@ function CheckIcon({ size = 18 }: { size?: number }) {
 }
 
 const RECENT_KEY = 'momentum_recent_lookups';
-const LEADS_KEY = 'momentum_saved_leads';
 
 function addRecent(data: ZipProfile) {
   try {
@@ -99,32 +98,32 @@ function addRecent(data: ZipProfile) {
   } catch {}
 }
 
-function isLeadSaved(zip: string): boolean {
+async function isLeadSaved(zip: string): Promise<boolean> {
   try {
-    const raw = localStorage.getItem(LEADS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    return arr.some((l: { zip: string }) => l.zip === zip);
+    const res = await fetch(`/api/leads?zip=${encodeURIComponent(zip)}`);
+    if (!res.ok) return false;
+    const json = await res.json();
+    return json.leads.length > 0;
   } catch { return false; }
 }
 
-function saveLead(data: ZipProfile) {
-  try {
-    const raw = localStorage.getItem(LEADS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    if (arr.some((l: { zip: string }) => l.zip === data.zip)) return;
-    arr.unshift({
+async function saveLead(data: ZipProfile): Promise<void> {
+  const stormSummary = data.storm.count > 0
+    ? `${data.storm.count} ${data.storm.primaryType || 'storm'} · ${data.storm.lastDate ? new Date(data.storm.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
+    : null;
+
+  await fetch('/api/leads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       zip: data.zip,
-      state: data.stateAbbrev || data.state,
+      stateAbbrev: data.stateAbbrev || data.state,
       fitScore: data.fitScore,
       fitGrade: data.fitGrade,
       stormFlag: data.storm.count >= 3,
-      stormSummary: data.storm.count > 0
-        ? `${data.storm.count} ${data.storm.primaryType || 'storm'} · ${data.storm.lastDate ? new Date(data.storm.lastDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}`
-        : null,
-      savedAt: new Date().toISOString(),
-    });
-    localStorage.setItem(LEADS_KEY, JSON.stringify(arr));
-  } catch {}
+      stormSummary,
+    }),
+  });
 }
 
 export default function FieldLookupPage() {
@@ -136,27 +135,49 @@ export default function FieldLookupPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const [personalized, setPersonalized] = useState<{
+    fitScore: number;
+    fitGrade: string;
+    personalizedBy: string[];
+  } | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    fetch(`/api/lookup/${zip}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(res.status === 404 ? 'Zip code not found' : 'Lookup failed');
-        return res.json();
-      })
-      .then((d: ZipProfile) => {
+    setPersonalized(null);
+
+    const baseReq = fetch(`/api/lookup/${zip}`).then((res) => {
+      if (!res.ok) throw new Error(res.status === 404 ? 'Zip code not found' : 'Lookup failed');
+      return res.json() as Promise<ZipProfile>;
+    });
+    const personReq = fetch(`/api/personalized-score/${zip}`)
+      .then((res) => res.json())
+      .catch(() => null);
+
+    Promise.all([baseReq, personReq])
+      .then(async ([d, p]) => {
         setData(d);
         addRecent(d);
-        setSaved(isLeadSaved(d.zip));
+        setSaved(await isLeadSaved(d.zip));
+        if (p?.isPersonalized) {
+          setPersonalized({
+            fitScore: p.fitScore,
+            fitGrade: p.fitGrade,
+            personalizedBy: p.personalizedBy,
+          });
+        }
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [zip]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!data) return;
-    saveLead(data);
+    await saveLead({
+      ...data,
+      fitScore: personalized?.fitScore ?? data.fitScore,
+      fitGrade: personalized?.fitGrade ?? data.fitGrade,
+    });
     setSaved(true);
   };
 
@@ -182,6 +203,9 @@ export default function FieldLookupPage() {
       </div>
     );
   }
+
+  const displayFitScore = personalized?.fitScore ?? data.fitScore;
+  const displayFitGrade = personalized?.fitGrade ?? data.fitGrade;
 
   const stats = [
     { label: 'Median Income', value: fmtMoney(data.medianIncome), sub: 'Household, USD' },
@@ -234,7 +258,12 @@ export default function FieldLookupPage() {
             </span>
           </div>
 
-          <FitScoreBadge score={data.fitScore} grade={data.fitGrade} />
+          {personalized && (
+            <p className="font-display text-[10px] font-bold tracking-[0.2em] uppercase mb-2" style={{ color: '#7B3CFF' }}>
+              Personalized for your brand
+            </p>
+          )}
+          <FitScoreBadge score={displayFitScore} grade={displayFitGrade} />
 
           <p className="mt-5 text-[17px] leading-[1.35] font-medium text-text-primary tracking-[-0.005em]">
             {data.summary}
