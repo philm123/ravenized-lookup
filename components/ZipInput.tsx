@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 interface ZipInputProps {
   zip: string;
   onPress: (key: string) => void;
@@ -18,6 +20,18 @@ function ArrowIcon({ size = 28 }: { size?: number }) {
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clr', '0', 'del'];
 
 export function ZipInput({ zip, onPress, onClear, onSubmit }: ZipInputProps) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (/^[0-9]$/.test(e.key)) { onPress(e.key); }
+      else if (e.key === 'Backspace') { onPress('del'); }
+      else if (e.key === 'Escape') { onClear(); }
+      else if (e.key === 'Enter') { onSubmit(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onPress, onClear, onSubmit]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
       <div className="px-6 pt-5 pb-4">
