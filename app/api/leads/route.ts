@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
+export type LeadStatus = 'saved' | 'contacted' | 'interested' | 'closed_won' | 'closed_lost';
+
+const VALID_STATUSES: LeadStatus[] = ['saved', 'contacted', 'interested', 'closed_won', 'closed_lost'];
+
 export interface LeadRow {
   id: string;
   zip: string;
@@ -9,13 +13,13 @@ export interface LeadRow {
   fit_grade: string | null;
   storm_flag: boolean;
   storm_summary: string | null;
-  status: string;
+  status: LeadStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;
+  closed_at: string | null;
 }
 
-// Shape consumed by the UI (matches legacy SavedLead + id for dedup)
 export interface LeadDTO {
   id: string;
   zip: string;
@@ -25,6 +29,8 @@ export interface LeadDTO {
   stormFlag: boolean;
   stormSummary: string | null;
   savedAt: string;
+  status: LeadStatus;
+  closedAt: string | null;
 }
 
 function toDTO(row: LeadRow): LeadDTO {
@@ -37,6 +43,8 @@ function toDTO(row: LeadRow): LeadDTO {
     stormFlag: row.storm_flag,
     stormSummary: row.storm_summary,
     savedAt: row.created_at,
+    status: row.status,
+    closedAt: row.closed_at,
   };
 }
 
@@ -73,7 +81,6 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabaseAdmin();
 
-  // idempotent: return existing row if zip is already saved
   const { data: existing } = await supabase
     .from('leads')
     .select('*')
@@ -100,4 +107,36 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   return NextResponse.json({ lead: toDTO(data as LeadRow) }, { status: 201 });
+}
+
+export async function PATCH(request: NextRequest) {
+  const body = await request.json() as { id: string; status: string };
+
+  if (!body.id || !body.status) {
+    return NextResponse.json({ error: 'id and status are required' }, { status: 400 });
+  }
+  if (!VALID_STATUSES.includes(body.status as LeadStatus)) {
+    return NextResponse.json(
+      { error: `status must be one of: ${VALID_STATUSES.join(', ')}` },
+      { status: 400 },
+    );
+  }
+
+  const status = body.status as LeadStatus;
+  const closedAt = ['closed_won', 'closed_lost'].includes(status)
+    ? new Date().toISOString()
+    : null;
+
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('leads')
+    .update({ status, closed_at: closedAt })
+    .eq('id', body.id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ lead: toDTO(data as LeadRow) });
 }

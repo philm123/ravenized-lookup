@@ -3,12 +3,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { RoleChip } from '@/components/RoleChip';
+import { NeedHelpCTA } from '@/components/NeedHelpCTA';
 import {
-  SAMPLE_TOTALS,
   SAMPLE_CANVASSERS,
-  SAMPLE_AREA_STATS,
   SAMPLE_WEEKLY_TREND,
+  type ZipAreaStat,
 } from '@/lib/owner-sample-data';
+
+interface OwnerTotals {
+  totalLeads: number;
+  totalCloses: number;
+  stormLeads: number;
+  avgCloseRate: number;
+}
 
 function RavenMark({ size = 22 }: { size?: number }) {
   const hex = (cx: number, cy: number, r: number, fill: string, key: string) => {
@@ -105,6 +112,18 @@ export default function OwnerHome() {
   const router = useRouter();
   const [zip, setZip] = useState('');
   const [tab, setTab] = useState<'dashboard' | 'lookup'>('dashboard');
+  const [totals, setTotals] = useState<OwnerTotals | null>(null);
+  const [areas, setAreas] = useState<ZipAreaStat[] | null>(null);
+
+  useEffect(() => {
+    fetch('/api/owner/stats')
+      .then((r) => r.json())
+      .then((d) => {
+        setTotals(d.totals);
+        setAreas(d.areas);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value.replace(/\D/g, '').slice(0, 5);
@@ -181,20 +200,26 @@ export default function OwnerHome() {
         ) : (
           /* Dashboard */
           <div className="pt-5 pb-10">
-            <SampleBanner />
-
-            {/* KPI row */}
+            {/* KPI row — real data */}
             <div className="px-6 mb-5">
               <span className="font-display text-[11px] font-bold tracking-[0.2em] uppercase text-text-secondary block mb-3">
-                This Week
+                All Time
               </span>
               <div className="grid grid-cols-2 gap-2">
-                <StatTile label="Total Leads" value={SAMPLE_TOTALS.totalLeads} sub="Across all areas" />
-                <StatTile label="Total Closes" value={SAMPLE_TOTALS.totalCloses} sub="Confirmed jobs" />
-                <StatTile label="Avg Close Rate" value={Math.round(SAMPLE_TOTALS.avgCloseRate * 100) + '%'} sub="Leads to close" />
-                <StatTile label="Storm Leads" value={SAMPLE_TOTALS.stormLeads} sub="Storm-flagged areas" />
+                <StatTile label="Total Leads" value={totals?.totalLeads ?? '—'} sub="Across all areas" />
+                <StatTile label="Total Closes" value={totals?.totalCloses ?? '—'} sub="Confirmed jobs" />
+                <StatTile
+                  label="Avg Close Rate"
+                  value={totals != null ? Math.round(totals.avgCloseRate * 100) + '%' : '—'}
+                  sub="Leads to close"
+                />
+                <StatTile label="Storm Leads" value={totals?.stormLeads ?? '—'} sub="Storm-flagged areas" />
               </div>
             </div>
+
+            <NeedHelpCTA headline="Need help growing the team?" subline="Ravenized can help you recruit, train, and optimize your canvassing operation." />
+
+            <SampleBanner />
 
             {/* Close rate trend */}
             <div className="px-6 mb-5 border-t border-white/10 pt-5">
@@ -258,13 +283,16 @@ export default function OwnerHome() {
               </div>
             </div>
 
-            {/* Areas breakdown */}
+            {/* Areas breakdown — real data */}
             <div className="px-6 mb-5 border-t border-white/10 pt-5">
               <span className="font-display text-[11px] font-bold tracking-[0.2em] uppercase text-text-secondary block mb-3">
                 Areas Canvassed
               </span>
+              {areas != null && areas.length === 0 && (
+                <span className="text-[13px] text-text-secondary">No leads saved yet.</span>
+              )}
               <div className="flex flex-col gap-2">
-                {SAMPLE_AREA_STATS.map((a) => {
+                {(areas ?? []).map((a) => {
                   const rate = a.leads > 0 ? Math.round((a.closes / a.leads) * 100) : 0;
                   return (
                     <button
