@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminClient } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'orgName is required' }, { status: 400 });
   }
 
-  const admin = getAdminClient();
+  const admin = getSupabaseAdmin();
 
   // idempotent: skip if profile already exists
   const { data: existing } = await admin

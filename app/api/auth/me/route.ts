@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { getAdminClient } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -22,7 +22,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ user: null }, { status: 401 });
 
-  const { data: profile } = await getAdminClient()
+  const { data: profile } = await getSupabaseAdmin()
     .from('profiles')
     .select('org_id, role')
     .eq('id', user.id)

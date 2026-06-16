@@ -48,14 +48,17 @@ export default function FieldHome() {
   const handlePress = (key: string) => {
     if (key === 'del') {
       setZip((z) => z.slice(0, -1));
-    } else if (zip.length < 5) {
-      const next = zip + key;
-      setZip(next);
-      if (next.length === 5) {
-        setTimeout(() => router.push(`/field/lookup/${next}`), 150);
-      }
+    } else {
+      setZip((z) => z.length < 5 ? z + key : z);
     }
   };
+
+  useEffect(() => {
+    if (zip.length === 5) {
+      const t = setTimeout(() => router.push(`/field/lookup/${zip}`), 150);
+      return () => clearTimeout(t);
+    }
+  }, [zip, router]);
 
   return (
     <div className="flex flex-col min-h-dvh">

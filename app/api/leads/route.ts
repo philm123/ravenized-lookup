@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminClient } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export interface LeadRow {
   id: string;
@@ -42,7 +42,7 @@ function toDTO(row: LeadRow): LeadDTO {
 
 export async function GET(request: NextRequest) {
   const zip = request.nextUrl.searchParams.get('zip');
-  const supabase = getAdminClient();
+  const supabase = getSupabaseAdmin();
 
   let query = supabase
     .from('leads')
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'zip is required' }, { status: 400 });
   }
 
-  const supabase = getAdminClient();
+  const supabase = getSupabaseAdmin();
 
   // idempotent: return existing row if zip is already saved
   const { data: existing } = await supabase

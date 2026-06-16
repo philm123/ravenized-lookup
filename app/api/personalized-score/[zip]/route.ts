@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { lookupZip } from '@/lib/db';
 import { calculateFitScore } from '@/lib/fit-score';
 import { getStormData } from '@/lib/storm-api';
-import { getAdminClient } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { personalizedFitScore, type BrandAnswers } from '@/lib/fit-score-personalized';
 
 const STATIC = { fitScore: null, fitGrade: null, isPersonalized: false, personalizedBy: [] as string[] };
@@ -36,7 +36,7 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json(STATIC);
 
-  const admin = getAdminClient();
+  const admin = getSupabaseAdmin();
 
   const { data: profile } = await admin
     .from('profiles')
@@ -55,10 +55,8 @@ export async function GET(
   const answers = (brand?.answers ?? null) as BrandAnswers | null;
 
   // Re-compute base score from source data (frozen route cannot be proxied).
-  const row = lookupZip(zip);
+  const [row, storm] = await Promise.all([lookupZip(zip), getStormData(zip)]);
   if (!row) return NextResponse.json(STATIC);
-
-  const storm = await getStormData(zip);
   const base = calculateFitScore(
     row.criteria_1, row.criteria_2, row.criteria_3,
     row.criteria_4, row.criteria_5, storm.count
