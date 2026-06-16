@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LeadCard, type SavedLead } from '@/components/LeadCard';
+import { LeadCard, type SavedLead, type LeadStatus } from '@/components/LeadCard';
 import { RoleChip } from '@/components/RoleChip';
+import { NeedHelpCTA } from '@/components/NeedHelpCTA';
 
 function BackIcon({ size = 20 }: { size?: number }) {
   return (
@@ -50,6 +51,17 @@ export default function FieldSavedPage() {
 
   const filtered = filter === 'storm' ? leads.filter((l) => l.stormFlag) : leads;
   const stormCount = leads.filter((l) => l.stormFlag).length;
+
+  const handleStatusChange = async (id: string, status: LeadStatus) => {
+    const res = await fetch('/api/leads', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status }),
+    });
+    if (!res.ok) return;
+    const { lead } = await res.json() as { lead: SavedLead };
+    setLeads((prev) => prev.map((l) => (l.id === lead.id ? lead : l)));
+  };
 
   const handleExport = () => {
     const text = leads
@@ -130,9 +142,11 @@ export default function FieldSavedPage() {
               key={lead.zip + lead.savedAt}
               lead={lead}
               onClick={() => router.push(`/field/lookup/${lead.zip}`)}
+              onStatusChange={handleStatusChange}
             />
           ))
         )}
+        <NeedHelpCTA />
       </div>
 
       <div className="px-4 pt-3 pb-5 border-t border-white/10 bg-bg-primary flex gap-2">
