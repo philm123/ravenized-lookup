@@ -30,7 +30,7 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid zip code' }, { status: 400 });
   }
 
-  const row = lookupZip(zip);
+  const row = await lookupZip(zip);
   if (!row) {
     return NextResponse.json({ error: 'Zip code not found' }, { status: 404 });
   }
